@@ -1,3 +1,4 @@
+# Deployment: Django App
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,6 +20,26 @@ spec:
           image: mabsacr.azurecr.io/django-app:latest
           ports:
             - containerPort: 80
+          env:
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_DB
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: DB_HOST
+              value: postgres-service
+            - name: DB_PORT
+              value: "5432"
           resources:
             requests:
               cpu: "100m"
@@ -29,6 +50,7 @@ spec:
 
 ---
 
+# Service: Django App (external)
 apiVersion: v1
 kind: Service
 metadata:
