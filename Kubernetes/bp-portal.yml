@@ -16,9 +16,9 @@ spec:
         - name: regcred
       containers:
         - name: my-app-container
-          image: officialmabz/gh-bphattersportal:14538661804
+          image: mabsacr.azurecr.io/django-app:latest
           ports:
-            - containerPort: 3000
+            - containerPort: 80
           resources:
             requests:
               cpu: "100m"
@@ -40,4 +40,4 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 3000
+      targetPort: 80
