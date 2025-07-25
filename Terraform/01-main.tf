@@ -37,16 +37,26 @@ terraform {
 
 
 
-# 2. Terraform Provider Block for AzureRM
+# # 2. Terraform Provider Block for AzureRM
+# provider "azurerm" {
+#   subscription_id = "05ca4ebd-62e8-48a0-bd46-2e10f810c811"
+#   features {
+#     # Updated as part of June2023 to delete "ContainerInsights Resources" when deleting the Resource Group
+#     resource_group {
+#       prevent_deletion_if_contains_resources = false
+#     }
+#   }
+# }
+
 provider "azurerm" {
-  subscription_id = "05ca4ebd-62e8-48a0-bd46-2e10f810c811"
-  features {
-    # Updated as part of June2023 to delete "ContainerInsights Resources" when deleting the Resource Group
-    resource_group {
-      prevent_deletion_if_contains_resources = false
-    }
-  }
+  features {}
+
+  use_oidc = true
+  tenant_id       = var.tenant_id
+  subscription_id = var.subscription_id
+  client_id       = var.client_id
 }
+
 
 # 3. Terraform Resource Block: Define a Random Pet Resource
 
