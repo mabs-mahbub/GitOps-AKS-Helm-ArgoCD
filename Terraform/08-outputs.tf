@@ -5,15 +5,15 @@
 
 # Resource Group Outputs
 output "location" {
-  value = azurerm_resource_group.aks_rg.location
+  value = data.azurerm_resource_group.aks_rg.location
 }
 
 output "resource_group_id" {
-  value = azurerm_resource_group.aks_rg.id
+  value = data.azurerm_resource_group.aks_rg.id
 }
 
 output "resource_group_name" {
-  value = azurerm_resource_group.aks_rg.name
+  value = data.azurerm_resource_group.aks_rg.name
 }
 
 # Azure AKS Versions Datasource
@@ -46,4 +46,12 @@ output "aks_cluster_name" {
 
 output "aks_cluster_kubernetes_version" {
   value = azurerm_kubernetes_cluster.aks_cluster.kubernetes_version
+}
+
+output "acr_username" {
+  value = azurerm_container_registry.acr.admin_username
+}
+
+output "acr_password" {
+  value = azurerm_container_registry.acr.admin_password
 }

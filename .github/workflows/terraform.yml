@@ -1,0 +1,136 @@
+name: Terraform Azure Deployment
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform-checks:
+    name: Terraform Validation & Security Checks
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Terraform/
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format
+        run: terraform fmt -check
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Checkov Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: Terraform/
+          quiet: true
+
+  terraform-plan:
+    name: Terraform Plan
+    needs: terraform-checks
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://portal.azure.com
+    outputs:
+      tfplan-path: ${{ steps.upload-plan.outputs.tfplan-path }}
+
+    defaults:
+      run:
+        working-directory: Terraform/
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan -input=false
+
+      - name: Save Plan File
+        id: upload-plan
+        run: |
+          mkdir -p artifact
+          terraform show -json tfplan > artifact/plan.json
+          echo "tfplan-path=Terraform/artifact/plan.json" >> $GITHUB_OUTPUT
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: Terraform/artifact/plan.json
+
+  terraform-apply:
+    name: Terraform Apply with Approval
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://portal.azure.com
+    concurrency: production-deploy
+
+    defaults:
+      run:
+        working-directory: Terraform/
+
+    steps:
+      - name: Wait for Approval
+        uses: hmarr/auto-approve-action@v3
+        if: github.event_name == 'workflow_dispatch'
+
+      - name: Download Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: Terraform/artifact
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan

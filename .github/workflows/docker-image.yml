@@ -1,10 +1,10 @@
-name: Build and Push Django App to ACR
+name: Build, Scan, and Push Django App to ACR
 
 on:
   workflow_dispatch:  # Manual trigger only
 
 jobs:
-  build-and-push:
+  build-scan-push:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,7 +21,23 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build and push Docker image
+    - name: Build Docker image (without push)
+      uses: docker/build-push-action@v5
+      with:
+        context: ./Application
+        load: true  # load into Docker for scanning
+        tags: mabsacr.azurecr.io/django-app:latest
+
+    - name: Scan Docker image with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: mabsacr.azurecr.io/django-app:latest
+        format: table
+        exit-code: 1
+        severity: CRITICAL,HIGH
+
+    - name: Push Docker image
+      if: success()  # Only push if scan passes
       uses: docker/build-push-action@v5
       with:
         context: ./Application
