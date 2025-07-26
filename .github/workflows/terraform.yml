@@ -1,9 +1,6 @@
 name: Terraform Azure Deployment
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -82,10 +79,16 @@ jobs:
           terraform_version: 1.7.5
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend-config="storage_account_name=${{ secrets.STORAGE_ACCOUNT }}" \
+                      -backend-config="container_name=statefiles" \
+                      -backend-config="key=terraform.tfstate" \
+                      -backend-config="resource_group_name=${{ secrets.STORAGE_RG }}"
 
       - name: Terraform Plan
-        run: terraform plan -out=tfplan -input=false
+        run: terraform plan -out=tfplan -input=false \
+          -var="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
+          -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
+          -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}"
 
       - name: Save Plan File
         id: upload-plan
@@ -147,7 +150,13 @@ jobs:
           terraform_version: 1.7.5
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend-config="storage_account_name=${{ secrets.STORAGE_ACCOUNT }}" \
+                      -backend-config="container_name=statefiles" \
+                      -backend-config="key=terraform.tfstate" \
+                      -backend-config="resource_group_name=${{ secrets.STORAGE_RG }}"
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve tfplan \
+          -var="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
+          -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
+          -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}"
