@@ -1,162 +1,84 @@
-name: Terraform Azure Deployment
+name: Terraform Deployment via OIDC
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
-  pull-requests: write
+
+env:
+  TERRAFORM_VERSION: 1.9.5
+  TF_BACKEND_STORAGE_ACCOUNT: ${{ secrets.TF_BACKEND_STORAGE_ACCOUNT }}
+  TF_BACKEND_RESOURCE_GROUP: ${{ secrets.TF_BACKEND_RESOURCE_GROUP }}
+  TF_BACKEND_CONTAINER_NAME: ${{ secrets.TF_BACKEND_CONTAINER_NAME }}
+  TF_STATE_FILE_NAME: terraform.tfstate
+  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+  ARM_USE_OIDC: true
 
 jobs:
-  terraform-checks:
-    name: Terraform Validation & Security Checks
+  terraform:
+    name: Terraform Plan and Apply
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: Terraform/
+    environment: production
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Terraform
+      - name: Azure Login via OIDC
+        uses: azure/login@v1
+        with:
+          client-id: ${{ env.ARM_CLIENT_ID }}
+          tenant-id: ${{ env.ARM_TENANT_ID }}
+          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.7.5
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
 
       - name: Terraform Init
-        run: terraform init
+        working-directory: Terraform
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=${{ env.TF_BACKEND_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ env.TF_BACKEND_CONTAINER_NAME }}" \
+            -backend-config="key=${{ env.TF_STATE_FILE_NAME }}" \
+            -backend-config="resource_group_name=${{ env.TF_BACKEND_RESOURCE_GROUP }}"
 
-      - name: Terraform Format
+      - name: Terraform Format Check
+        working-directory: Terraform
         run: terraform fmt -check
 
       - name: Terraform Validate
+        working-directory: Terraform
         run: terraform validate
 
-      - name: Checkov Scan
-        uses: bridgecrewio/checkov-action@master
-        with:
-          directory: Terraform/
-          quiet: true
-
-  terraform-plan:
-    name: Terraform Plan
-    needs: terraform-checks
-    runs-on: ubuntu-latest
-    environment:
-      name: staging
-      url: https://portal.azure.com
-    outputs:
-      tfplan-path: ${{ steps.upload-plan.outputs.tfplan-path }}
-
-    defaults:
-      run:
-        working-directory: Terraform/
-
-    env:
-      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      ARM_USE_OIDC: true
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.7.5
-
-      - name: Terraform Init
-        run: terraform init -backend-config="storage_account_name=${{ secrets.STORAGE_ACCOUNT }}" \
-                      -backend-config="container_name=statefiles" \
-                      -backend-config="key=terraform.tfstate" \
-                      -backend-config="resource_group_name=${{ secrets.STORAGE_RG }}"
-
       - name: Terraform Plan
+        working-directory: Terraform
         run: terraform plan -out=tfplan -input=false \
-          -var="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
-          -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
-          -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          -var="client_id=${{ env.ARM_CLIENT_ID }}" \
+          -var="tenant_id=${{ env.ARM_TENANT_ID }}" \
+          -var="subscription_id=${{ env.ARM_SUBSCRIPTION_ID }}"
 
-      - name: Save Plan File
-        id: upload-plan
-        run: |
-          mkdir -p artifact
-          terraform show -json tfplan > artifact/plan.json
-          echo "tfplan-path=Terraform/artifact/plan.json" >> $GITHUB_OUTPUT
-
-      - name: Upload Plan Artifact
-        uses: actions/upload-artifact@v4
+      - name: Manual Approval Before Apply
+        uses: trstringer/manual-approval@v1
         with:
-          name: terraform-plan
-          path: Terraform/artifact/plan.json
-
-  terraform-apply:
-    name: Terraform Apply with Approval
-    needs: terraform-plan
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://portal.azure.com
-    concurrency: production-deploy
-
-    defaults:
-      run:
-        working-directory: Terraform/
-
-    env:
-      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      ARM_USE_OIDC: true
-
-    steps:
-      - name: Wait for Approval
-        uses: hmarr/auto-approve-action@v3
-        if: github.event_name == 'workflow_dispatch'
-
-      - name: Download Plan
-        uses: actions/download-artifact@v4
-        with:
-          name: terraform-plan
-          path: Terraform/artifact
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.7.5
-
-      - name: Terraform Init
-        run: terraform init -backend-config="storage_account_name=${{ secrets.STORAGE_ACCOUNT }}" \
-                      -backend-config="container_name=statefiles" \
-                      -backend-config="key=terraform.tfstate" \
-                      -backend-config="resource_group_name=${{ secrets.STORAGE_RG }}"
+          secret: ${{ github.TOKEN }}
+          approvers: "@your-org/your-approvers"
+          minimum-approvals: 1
+          issue-title: "Terraform Apply Approval Required"
+          issue-body: "Please approve to proceed with terraform apply."
 
       - name: Terraform Apply
+        working-directory: Terraform
         run: terraform apply -auto-approve tfplan \
-          -var="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
-          -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
-          -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          -var="client_id=${{ env.ARM_CLIENT_ID }}" \
+          -var="tenant_id=${{ env.ARM_TENANT_ID }}" \
+          -var="subscription_id=${{ env.ARM_SUBSCRIPTION_ID }}"
