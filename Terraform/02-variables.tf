@@ -33,10 +33,6 @@ variable "environment" {
 #   description = "This variable defines the SSH Public Key for Linux k8s Worker nodes"
 # }
 
-variable "client_id" {}
-variable "tenant_id" {}
-variable "subscription_id" {}
-
 # Windows Admin Username for k8s worker nodes
 variable "windows_admin_username" {
   type        = string

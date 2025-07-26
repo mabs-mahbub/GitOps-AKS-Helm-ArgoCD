@@ -47,14 +47,13 @@ terraform {
 #     }
 #   }
 # }
-
 provider "azurerm" {
+  subscription_id = "05ca4ebd-62e8-48a0-bd46-2e10f810c811"
+  client_id = "6c803a9b-cd79-4832-880e-87dfcc84d3d2"
+  client_secret = "YhZ8Q~eSGkeOUoe5ZqPfpWNy2e8_t2WYa5-wqb5c"
+  tenant_id = "b9fec68c-c92d-461e-9a97-3d03a0f18b82"
   features {}
-
-  use_oidc = true
-  tenant_id       = var.tenant_id
-  subscription_id = var.subscription_id
-  client_id       = var.client_id
+  
 }
 
 
