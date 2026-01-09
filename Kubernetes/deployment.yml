@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finance-portal-deployment
+  namespace: default  # Change if deploying to a different namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: finance-portal
+  template:
+    metadata:
+      labels:
+        app: finance-portal
+    spec:
+      containers:
+      - name: finance-portal
+        image: docker.io/officialmabz/gh-bphattersportal:19392850050
+        ports:
+        - containerPort: 80
+      imagePullSecrets:
+      - name: dockerhub-secret

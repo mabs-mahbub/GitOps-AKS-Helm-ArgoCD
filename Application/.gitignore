@@ -48,6 +48,9 @@ nosetests.xml
 coverage.xml
 *.cover
 *.py,cover
+
+# Environment variables
+.env
 .hypothesis/
 .pytest_cache/
 cover/

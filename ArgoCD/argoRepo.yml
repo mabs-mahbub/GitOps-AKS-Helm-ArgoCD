@@ -1,0 +1,12 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Repository
+metadata:
+  name: my-github-repo
+  namespace: argocd
+spec:
+  repo: https://github.com/mabs-mahbub/Django-Finance-Portal.git
+  type: git
+  username: mabs-mahbub
+  passwordSecret:
+    name: github-pat-secret
+    key: token
