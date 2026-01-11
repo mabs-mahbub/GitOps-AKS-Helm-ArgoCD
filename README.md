@@ -51,7 +51,7 @@ git clone https://github.com/mabs-mahbub/Finance-Portal.git
   ```
 
 ### 3. Configure environment variables
-- Create a `.env` file based on `.env.example`
+- Create a `.env` file based on `Application/.env.example`
 - Fill in your database credentials, Django secret key, email details etc.
 
 ### 4. Run locally
