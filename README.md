@@ -1,4 +1,4 @@
-# ⚽ Football Club Finance Portal
+# ⚽ Football Club Finance Portal with GitOps Workflow
 
 A Django-based finance portal for local football clubs to manage players, dues, and payments. This repository is organized around a GitOps workflow: infrastructure is defined with Terraform, application builds are produced by CI/CD, Kubernetes/Helm manage the runtime configuration, and Argo CD keeps the cluster in sync with what is committed here.
 
