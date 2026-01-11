@@ -1,4 +1,4 @@
-name: Build, Scan, and Push Django App to ACR
+name: Build, Scan, and Push Django App to Docker Hub
 
 on:
   workflow_dispatch:  # Manual trigger only
@@ -10,7 +10,7 @@ jobs:
     env:
       IMAGE_TAG: ${{ github.run_id }}
       IMAGE_NAME: gh-bphattersportal
-      DOCKER_HUB_REGISTRY: docker.io/${{ secrets.DOCKER_USERNAME }}
+      IMAGE_REPOSITORY: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
 
     steps:
     - name: Checkout repository
@@ -19,7 +19,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Log in to Azure Container Registry
+    - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -30,12 +30,12 @@ jobs:
       with:
         context: ./Application
         load: true  # load into Docker for scanning
-        tags: docker.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+        tags: docker.io/${{ env.IMAGE_REPOSITORY }}:${{ env.IMAGE_TAG }}
 
     - name: Scan Docker image with Trivy
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: docker.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+        image-ref: docker.io/${{ env.IMAGE_REPOSITORY }}:${{ env.IMAGE_TAG }}
         format: table
         exit-code: 1
         severity: CRITICAL,HIGH
@@ -46,12 +46,12 @@ jobs:
       with:
         context: ./Application
         push: true
-        tags: docker.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+        tags: docker.io/${{ env.IMAGE_REPOSITORY }}:${{ env.IMAGE_TAG }}
 
     - name: Update Kubernetes image tag
       if: success()
       run: |
-        sed -i "s|image: .*|image: docker.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}|" Kubernetes/deployment.yml
+        sed -i "s|image: .*|image: docker.io/${{ env.IMAGE_REPOSITORY }}:${{ env.IMAGE_TAG }}|" Kubernetes/deployment.yml
 
     - name: Commit updated deployment manifest
       if: success()
