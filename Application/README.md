@@ -35,7 +35,7 @@ cd football-club-finance
   ```
 
 ### 3. Configure environment variables
-- Create a `.env` file based on `.env.example`
+- Create a `.env` file based on `.env.example` in this folder
 - Fill in your database credentials, Django secret key, etc.
 
 ### 4. Run locally
