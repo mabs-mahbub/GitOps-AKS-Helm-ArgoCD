@@ -118,8 +118,8 @@ This flow ensures that **git is the single source of truth**: any change committ
 
 ## 📸 Screenshots
 
-### Azure Architecture - Infrastructure Design
-![Azure Architecture](screenshots/AzureArc.jpeg)
+### GitOps Workflow
+![GitOps Workflow](screenshots/gitops.png)
 
 ### Login Page
 ![Login Page](screenshots/loginpage.png)
