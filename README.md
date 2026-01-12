@@ -132,3 +132,6 @@ This flow ensures that **git is the single source of truth**: any change committ
 
 ### Players Payment Dashboard
 ![Treasurer Reminder Dashboard](screenshots/playerspayment.png)
+
+### ArgoCD Dashboard
+![ArgoCD Dashboard](screenshots/Argocd.png)
