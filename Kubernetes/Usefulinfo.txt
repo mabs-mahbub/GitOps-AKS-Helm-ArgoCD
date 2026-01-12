@@ -1,0 +1,2 @@
+- https://medium.com/@ernestgibbsiii/implementing-prometheus-monitoring-on-kubernetes-using-helm-and-prometheus-operator-fa1b110afb24
+- kubectl port-forward deployment/prometheus-grafana 3000:3000

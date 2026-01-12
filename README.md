@@ -135,3 +135,7 @@ This flow ensures that **git is the single source of truth**: any change committ
 
 ### ArgoCD Dashboard
 ![ArgoCD Dashboard](screenshots/Argocd.png)
+
+### Monitoring Dashboard / Prometheus & Grafana
+![Monitoring Dashboard](screenshots/monitoring1.png)
+![Monitoring Dashboard](screenshots/monitoring2.png)
